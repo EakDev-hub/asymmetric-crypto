@@ -4,24 +4,28 @@ import {
   encryptMessage,
   decryptMessage,
   signMessage,
-  verifySignature
+  verifySignature,
+  performKeyExchange
 } from '../controllers/cryptoController.js';
 
 const router = express.Router();
 
-// Generate RSA key pair
+// Generate key pair (supports multiple algorithms)
 router.post('/generate-keys', generateKeyPair);
 
-// Encrypt message with public key
+// Encrypt message with public key (RSA only)
 router.post('/encrypt', encryptMessage);
 
-// Decrypt message with private key
+// Decrypt message with private key (RSA only)
 router.post('/decrypt', decryptMessage);
 
-// Sign message with private key
+// Sign message with private key (RSA, ECC, Ed25519)
 router.post('/sign', signMessage);
 
-// Verify signature with public key
+// Verify signature with public key (RSA, ECC, Ed25519)
 router.post('/verify-signature', verifySignature);
+
+// Perform ECDH key exchange (ECC curves, X25519)
+router.post('/key-exchange', performKeyExchange);
 
 export default router;

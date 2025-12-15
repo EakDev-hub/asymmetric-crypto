@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { encryptMessage, decryptMessage } from '../services/cryptoApi';
 
-const EncryptDecrypt = ({ publicKey, privateKey }) => {
+const EncryptDecrypt = ({ publicKey, privateKey, algorithm = 'RSA-2048' }) => {
   const [plainText, setPlainText] = useState('');
   const [encryptedText, setEncryptedText] = useState('');
   const [decryptedText, setDecryptedText] = useState('');
@@ -18,6 +18,9 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
   const [editablePublicKey, setEditablePublicKey] = useState('');
   const [editablePrivateKey, setEditablePrivateKey] = useState('');
 
+  // Check if current algorithm supports encryption
+  const canEncrypt = algorithm?.startsWith('RSA') || false;
+
   // Sync editable keys with props when they change
   useEffect(() => {
     if (publicKey) {
@@ -32,6 +35,11 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
   }, [privateKey]);
 
   const handleEncrypt = async () => {
+    if (!canEncrypt) {
+      setError(`${algorithm} does not support encryption. Please use an RSA algorithm.`);
+      return;
+    }
+
     if (!plainText.trim()) {
       setError('Please enter a message to encrypt');
       return;
@@ -47,7 +55,7 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
     setSuccess(null);
 
     try {
-      const response = await encryptMessage(plainText, editablePublicKey);
+      const response = await encryptMessage(plainText, editablePublicKey, algorithm);
       setEncryptedText(response.encrypted);
       setSuccess(`Message encrypted successfully using ${response.algorithm}`);
     } catch (err) {
@@ -59,6 +67,11 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
   };
 
   const handleDecrypt = async () => {
+    if (!canEncrypt) {
+      setError(`${algorithm} does not support decryption. Please use an RSA algorithm.`);
+      return;
+    }
+
     if (!encryptedText.trim()) {
       setError('Please enter encrypted data to decrypt');
       return;
@@ -74,7 +87,7 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
     setSuccess(null);
 
     try {
-      const response = await decryptMessage(encryptedText, editablePrivateKey);
+      const response = await decryptMessage(encryptedText, editablePrivateKey, algorithm);
       setDecryptedText(response.decrypted);
       setSuccess('Message decrypted successfully!');
     } catch (err) {
@@ -114,6 +127,28 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
         Only the holder of the private key can decrypt messages encrypted with the public key.
       </p>
 
+      {/* Algorithm Warning for Non-RSA */}
+      {!canEncrypt && (
+        <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="font-semibold text-yellow-900 mb-2">
+                Encryption Not Supported with {algorithm}
+              </p>
+              <p className="text-sm text-yellow-800 mb-2">
+                <strong>{algorithm}</strong> does not support direct encryption/decryption.
+                Only RSA algorithms support this feature.
+              </p>
+              <p className="text-sm text-yellow-800">
+                <strong>Alternative:</strong> For ECC algorithms, use the Key Exchange feature
+                to derive a shared secret, then use that with symmetric encryption (AES).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="error-message">
           <strong>Error:</strong> {error}
@@ -126,7 +161,7 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${!canEncrypt ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Encryption Section */}
         <div className="space-y-4">
           <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
@@ -185,7 +220,7 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
             {/* Encrypt Button */}
             <button
               onClick={handleEncrypt}
-              disabled={encryptLoading || !editablePublicKey || !plainText.trim()}
+              disabled={!canEncrypt || encryptLoading || !editablePublicKey || !plainText.trim()}
               className="btn-primary w-full"
             >
               {encryptLoading ? (
@@ -288,7 +323,7 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
             {/* Decrypt Button */}
             <button
               onClick={handleDecrypt}
-              disabled={decryptLoading || !editablePrivateKey || !encryptedText.trim()}
+              disabled={!canEncrypt || decryptLoading || !editablePrivateKey || !encryptedText.trim()}
               className="btn-primary w-full"
             >
               {decryptLoading ? (
@@ -338,8 +373,9 @@ const EncryptDecrypt = ({ publicKey, privateKey }) => {
             <li><strong>Encryption:</strong> Plain text + Public Key = Encrypted Data (anyone can encrypt)</li>
             <li><strong>Decryption:</strong> Encrypted Data + Private Key = Original Message (only private key holder can decrypt)</li>
             <li>The encrypted data is encoded in Base64 format for easy transmission</li>
-            <li>RSA-OAEP padding is used for security against certain attacks</li>
-            <li>Message size is limited by key size (2048-bit key allows ~245 bytes)</li>
+            <li><strong>RSA only:</strong> RSA-OAEP padding is used for security against certain attacks</li>
+            <li><strong>Message limits:</strong> RSA-2048 (~245 bytes), RSA-3072 (~381 bytes), RSA-4096 (~501 bytes)</li>
+            <li><strong>ECC note:</strong> ECC curves don't support direct encryption. Use ECDH + AES instead.</li>
           </ul>
         </div>
 

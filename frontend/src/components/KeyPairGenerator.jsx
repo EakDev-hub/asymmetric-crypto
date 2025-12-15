@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { generateKeys } from '../services/cryptoApi';
+import AlgorithmSelector from './AlgorithmSelector';
 
 const KeyPairGenerator = ({ onKeysGenerated }) => {
   const [loading, setLoading] = useState(false);
   const [keys, setKeys] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState({ public: false, private: false });
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('RSA-2048');
 
   const handleGenerateKeys = async () => {
     setLoading(true);
@@ -13,17 +15,19 @@ const KeyPairGenerator = ({ onKeysGenerated }) => {
     setCopied({ public: false, private: false });
 
     try {
-      const response = await generateKeys();
+      const response = await generateKeys(selectedAlgorithm);
       setKeys({
         publicKey: response.publicKey,
         privateKey: response.privateKey,
         keySize: response.keySize,
-        algorithm: response.algorithm
+        algorithm: response.algorithm,
+        curve: response.curve,
+        capabilities: response.capabilities
       });
       
-      // Pass keys up to parent component
+      // Pass keys and algorithm up to parent component
       if (onKeysGenerated) {
-        onKeysGenerated(response.publicKey, response.privateKey);
+        onKeysGenerated(response.publicKey, response.privateKey, response.algorithm);
       }
     } catch (err) {
       setError(err.message);
@@ -48,7 +52,7 @@ const KeyPairGenerator = ({ onKeysGenerated }) => {
   return (
     <div className="card">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        1️⃣ Generate RSA Key Pair
+        1️⃣ Generate Cryptographic Key Pair
       </h2>
       
       <div className="mb-6">
@@ -57,10 +61,17 @@ const KeyPairGenerator = ({ onKeysGenerated }) => {
           while the private key must be kept secret.
         </p>
         
+        {/* Algorithm Selector */}
+        <AlgorithmSelector
+          value={selectedAlgorithm}
+          onChange={setSelectedAlgorithm}
+          className="mb-4"
+        />
+        
         <button
           onClick={handleGenerateKeys}
           disabled={loading}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 w-full"
         >
           {loading ? (
             <>
@@ -68,12 +79,12 @@ const KeyPairGenerator = ({ onKeysGenerated }) => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span>Generating Keys...</span>
+              <span>Generating {selectedAlgorithm} Keys...</span>
             </>
           ) : (
             <>
               <span>🔑</span>
-              <span>Generate New Key Pair</span>
+              <span>Generate {selectedAlgorithm} Key Pair</span>
             </>
           )}
         </button>
@@ -89,7 +100,26 @@ const KeyPairGenerator = ({ onKeysGenerated }) => {
         <div className="space-y-6">
           <div className="success-message">
             ✅ Successfully generated {keys.keySize}-bit {keys.algorithm} key pair!
+            {keys.curve && <span className="ml-2 text-sm">(Curve: {keys.curve})</span>}
           </div>
+
+          {/* Capabilities Badge */}
+          {keys.capabilities && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-semibold text-blue-900 mb-2">Algorithm Capabilities:</p>
+              <div className="flex flex-wrap gap-2">
+                {keys.capabilities.map(cap => (
+                  <span key={cap} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    {cap === 'encrypt' && '🔒 Encrypt'}
+                    {cap === 'decrypt' && '🔓 Decrypt'}
+                    {cap === 'sign' && '✍️ Sign'}
+                    {cap === 'verify' && '✅ Verify'}
+                    {cap === 'ecdh' && '🔗 Key Exchange'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Public Key */}
           <div>

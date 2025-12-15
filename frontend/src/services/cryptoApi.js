@@ -11,11 +11,11 @@ const api = axios.create({
 });
 
 /**
- * Generate RSA key pair
+ * Generate key pair (supports multiple algorithms)
  */
-export const generateKeys = async () => {
+export const generateKeys = async (algorithm = 'RSA-2048') => {
   try {
-    const response = await api.post('/generate-keys');
+    const response = await api.post('/generate-keys', { algorithm });
     return response.data;
   } catch (error) {
     throw handleError(error);
@@ -23,13 +23,14 @@ export const generateKeys = async () => {
 };
 
 /**
- * Encrypt message with public key
+ * Encrypt message with public key (RSA only)
  */
-export const encryptMessage = async (message, publicKey) => {
+export const encryptMessage = async (message, publicKey, algorithm = 'RSA-2048') => {
   try {
     const response = await api.post('/encrypt', {
       message,
       publicKey,
+      algorithm
     });
     return response.data;
   } catch (error) {
@@ -38,13 +39,14 @@ export const encryptMessage = async (message, publicKey) => {
 };
 
 /**
- * Decrypt message with private key
+ * Decrypt message with private key (RSA only)
  */
-export const decryptMessage = async (encryptedData, privateKey) => {
+export const decryptMessage = async (encryptedData, privateKey, algorithm = 'RSA-2048') => {
   try {
     const response = await api.post('/decrypt', {
       encryptedData,
       privateKey,
+      algorithm
     });
     return response.data;
   } catch (error) {
@@ -53,13 +55,14 @@ export const decryptMessage = async (encryptedData, privateKey) => {
 };
 
 /**
- * Sign message with private key
+ * Sign message with private key (supports multiple algorithms)
  */
-export const signMessage = async (message, privateKey) => {
+export const signMessage = async (message, privateKey, algorithm = 'RSA-2048') => {
   try {
     const response = await api.post('/sign', {
       message,
       privateKey,
+      algorithm
     });
     return response.data;
   } catch (error) {
@@ -68,14 +71,31 @@ export const signMessage = async (message, privateKey) => {
 };
 
 /**
- * Verify signature with public key
+ * Verify signature with public key (supports multiple algorithms)
  */
-export const verifySignature = async (message, signature, publicKey) => {
+export const verifySignature = async (message, signature, publicKey, algorithm = 'RSA-2048') => {
   try {
     const response = await api.post('/verify-signature', {
       message,
       signature,
       publicKey,
+      algorithm
+    });
+    return response.data;
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+/**
+ * Perform ECDH key exchange (NEW)
+ */
+export const performKeyExchange = async (privateKey, peerPublicKey, algorithm = 'P-256') => {
+  try {
+    const response = await api.post('/key-exchange', {
+      privateKey,
+      peerPublicKey,
+      algorithm
     });
     return response.data;
   } catch (error) {
@@ -105,4 +125,5 @@ export default {
   decryptMessage,
   signMessage,
   verifySignature,
+  performKeyExchange,
 };

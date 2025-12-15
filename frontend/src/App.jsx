@@ -4,16 +4,19 @@ import Footer from './components/Footer';
 import KeyPairGenerator from './components/KeyPairGenerator';
 import EncryptDecrypt from './components/EncryptDecrypt';
 import DigitalSignature from './components/DigitalSignature';
+import KeyExchange from './components/KeyExchange';
 import ProcessVisualization from './components/ProcessVisualization';
 
 function App() {
   const [publicKey, setPublicKey] = useState('');
   const [privateKey, setPrivateKey] = useState('');
+  const [algorithm, setAlgorithm] = useState('RSA-2048');
   const [activeTab, setActiveTab] = useState('overview');
 
-  const handleKeysGenerated = (pubKey, privKey) => {
+  const handleKeysGenerated = (pubKey, privKey, algo) => {
     setPublicKey(pubKey);
     setPrivateKey(privKey);
+    setAlgorithm(algo);
   };
 
   const tabs = [
@@ -51,19 +54,20 @@ function App() {
           <div className="space-y-6">
             <div className="card">
               <h2 className="text-2xl font-bold mb-4 text-gray-800">
-                Welcome to Asymmetric Cryptography Demo
+                Welcome to Multi-Algorithm Cryptography Demo
               </h2>
               <p className="text-gray-700 mb-4">
-                This interactive application demonstrates how asymmetric (public-key) cryptography works using the RSA algorithm.
-                You'll learn about key generation, encryption, decryption, and digital signatures through hands-on experimentation.
+                This interactive application demonstrates how asymmetric (public-key) cryptography works using multiple algorithms
+                including RSA, ECC (Elliptic Curve), Ed25519, and X25519. You'll learn about key generation, encryption, decryption,
+                digital signatures, and key exchange through hands-on experimentation.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="text-3xl mb-2">🔑</div>
                   <h3 className="font-semibold text-green-800 mb-2">Key Generation</h3>
                   <p className="text-sm text-gray-700">
-                    Generate a pair of mathematically linked keys - a public key for encryption and a private key for decryption.
+                    Generate key pairs using RSA, ECC, Ed25519, or X25519 algorithms.
                   </p>
                 </div>
 
@@ -71,7 +75,7 @@ function App() {
                   <div className="text-3xl mb-2">🔒</div>
                   <h3 className="font-semibold text-blue-800 mb-2">Encryption/Decryption</h3>
                   <p className="text-sm text-gray-700">
-                    Encrypt messages with the public key so only the private key holder can decrypt and read them.
+                    Encrypt messages with RSA public keys (ECC uses key exchange instead).
                   </p>
                 </div>
 
@@ -79,7 +83,15 @@ function App() {
                   <div className="text-3xl mb-2">✍️</div>
                   <h3 className="font-semibold text-purple-800 mb-2">Digital Signatures</h3>
                   <p className="text-sm text-gray-700">
-                    Sign messages with your private key to prove authenticity. Anyone can verify with your public key.
+                    Sign with RSA, ECDSA, or EdDSA for message authenticity.
+                  </p>
+                </div>
+
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                  <div className="text-3xl mb-2">🔗</div>
+                  <h3 className="font-semibold text-teal-800 mb-2">Key Exchange</h3>
+                  <p className="text-sm text-gray-700">
+                    Use ECDH to derive shared secrets for symmetric encryption.
                   </p>
                 </div>
               </div>
@@ -91,7 +103,7 @@ function App() {
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">1</span>
                   <div>
-                    <strong>Generate Keys:</strong> Click the "Generate New Key Pair" button to create your RSA keys.
+                    <strong>Choose Algorithm & Generate Keys:</strong> Select an algorithm (RSA, ECC, Ed25519, X25519) and generate your key pair.
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -131,8 +143,9 @@ function App() {
         {activeTab === 'operations' && (
           <div className="space-y-6">
             <KeyPairGenerator onKeysGenerated={handleKeysGenerated} />
-            <EncryptDecrypt publicKey={publicKey} privateKey={privateKey} />
-            <DigitalSignature publicKey={publicKey} privateKey={privateKey} />
+            <EncryptDecrypt publicKey={publicKey} privateKey={privateKey} algorithm={algorithm} />
+            <DigitalSignature publicKey={publicKey} privateKey={privateKey} algorithm={algorithm} />
+            <KeyExchange publicKey={publicKey} privateKey={privateKey} algorithm={algorithm} />
           </div>
         )}
 

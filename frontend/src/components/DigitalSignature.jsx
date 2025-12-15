@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signMessage, verifySignature } from '../services/cryptoApi';
 
-const DigitalSignature = ({ publicKey, privateKey }) => {
+const DigitalSignature = ({ publicKey, privateKey, algorithm = 'RSA-2048' }) => {
   const [messageToSign, setMessageToSign] = useState('');
   const [signature, setSignature] = useState('');
   
@@ -17,7 +17,15 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
   
   const [copied, setCopied] = useState(false);
 
+  // Check if current algorithm supports signing
+  const canSign = algorithm !== 'X25519';
+
   const handleSign = async () => {
+    if (!canSign) {
+      setError(`${algorithm} does not support digital signatures. Please use a different algorithm.`);
+      return;
+    }
+
     if (!messageToSign.trim()) {
       setError('Please enter a message to sign');
       return;
@@ -33,7 +41,7 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
     setSuccess(null);
 
     try {
-      const response = await signMessage(messageToSign, privateKey);
+      const response = await signMessage(messageToSign, privateKey, algorithm);
       setSignature(response.signature);
       setSignatureToVerify(response.signature);
       setMessageToVerify(messageToSign);
@@ -47,6 +55,11 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
   };
 
   const handleVerify = async () => {
+    if (!canSign) {
+      setError(`${algorithm} does not support signature verification. Please use a different algorithm.`);
+      return;
+    }
+
     if (!messageToVerify.trim()) {
       setError('Please enter the original message');
       return;
@@ -67,11 +80,11 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
     setSuccess(null);
 
     try {
-      const response = await verifySignature(messageToVerify, signatureToVerify, publicKey);
+      const response = await verifySignature(messageToVerify, signatureToVerify, publicKey, algorithm);
       setVerificationResult(response.verified);
       
       if (response.verified) {
-        setSuccess('✅ Signature is VALID! Message is authentic and hasn\'t been tampered with.');
+        setSuccess(`✅ Signature is VALID! Message is authentic and hasn't been tampered with. (${response.algorithm})`);
       } else {
         setError('❌ Signature is INVALID! Message may have been modified or signature is incorrect.');
       }
@@ -114,6 +127,43 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
         Anyone with your public key can verify the signature to confirm you signed it.
       </p>
 
+      {/* Algorithm Info */}
+      {algorithm && (
+        <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+          <p className="text-sm">
+            <span className="font-semibold text-indigo-900">Current Algorithm:</span>
+            <span className="ml-2 text-indigo-700">{algorithm}</span>
+            {algorithm === 'Ed25519' && (
+              <span className="ml-2 text-xs text-indigo-600">⚡ (Fastest signatures!)</span>
+            )}
+            {algorithm.startsWith('P-') && (
+              <span className="ml-2 text-xs text-indigo-600">🔑 (ECDSA)</span>
+            )}
+            {algorithm.startsWith('RSA') && (
+              <span className="ml-2 text-xs text-indigo-600">🔐 (RSA-PSS)</span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Algorithm Warning for X25519 */}
+      {!canSign && (
+        <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="font-semibold text-yellow-900 mb-2">
+                Signing Not Supported with {algorithm}
+              </p>
+              <p className="text-sm text-yellow-800">
+                <strong>{algorithm}</strong> is optimized for key exchange only and does not support digital signatures.
+                Please use RSA, ECC (P-256, P-384, P-521, secp256k1), or Ed25519 for signing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="error-message">
           <strong>Error:</strong> {error}
@@ -126,7 +176,7 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${!canSign ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Signing Section */}
         <div className="space-y-4">
           <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
@@ -165,7 +215,7 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
             {/* Sign Button */}
             <button
               onClick={handleSign}
-              disabled={signLoading || !privateKey || !messageToSign.trim()}
+              disabled={!canSign || signLoading || !privateKey || !messageToSign.trim()}
               className="btn-primary w-full"
             >
               {signLoading ? (
@@ -266,7 +316,7 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
             {/* Verify Button */}
             <button
               onClick={handleVerify}
-              disabled={verifyLoading || !publicKey || !messageToVerify.trim() || !signatureToVerify.trim()}
+              disabled={!canSign || verifyLoading || !publicKey || !messageToVerify.trim() || !signatureToVerify.trim()}
               className="btn-primary w-full"
             >
               {verifyLoading ? (
@@ -328,8 +378,9 @@ const DigitalSignature = ({ publicKey, privateKey }) => {
         <div className="info-message text-sm">
           <p className="font-semibold mb-2">💡 How Digital Signatures Work:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong>Signing:</strong> Message is hashed (SHA-256) and encrypted with private key = Digital Signature</li>
-            <li><strong>Verification:</strong> Signature is decrypted with public key and compared to message hash</li>
+            <li><strong>RSA:</strong> Uses RSA-PSS with SHA-256 hashing</li>
+            <li><strong>ECDSA:</strong> Uses elliptic curve signatures with curve-specific hashing (SHA-256/384/512)</li>
+            <li><strong>Ed25519:</strong> Uses EdDSA with SHA-512 (fastest and deterministic)</li>
             <li><strong>Authenticity:</strong> Proves the message was signed by the private key owner</li>
             <li><strong>Integrity:</strong> Confirms the message hasn't been altered since signing</li>
             <li><strong>Non-repudiation:</strong> Signer cannot deny creating the signature</li>
