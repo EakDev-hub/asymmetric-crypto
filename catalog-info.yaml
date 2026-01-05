@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: asymmetric-crypto
+  annotations:
+    github.com/project-slug: EakDev-hub/asymmetric-crypto
+spec:
+  type: other
+  lifecycle: unknown
+  owner: eak
