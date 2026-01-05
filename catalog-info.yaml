@@ -6,5 +6,5 @@ metadata:
     github.com/project-slug: EakDev-hub/asymmetric-crypto
 spec:
   type: other
-  lifecycle: unknown
+  lifecycle: production
   owner: eak
